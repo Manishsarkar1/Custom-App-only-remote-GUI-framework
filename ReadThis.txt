@@ -1,1 +1,3 @@
 Project made because i was facing problem with X11
+
+Goal : Project is made to just show the output of the application that is remotely being developed on an IOT device or edge device, rather than having the full UI on the desktop screen, only the application UI is being rendered in the desktop screen

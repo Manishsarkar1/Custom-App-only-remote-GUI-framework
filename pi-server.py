@@ -27,7 +27,7 @@ async def handler(ws, path):
     try:
         async for msg in ws:
             data = json.loads(msg)
-            click.secho(f"Received from client: {data}"fg = "blue")
+            click.secho(f"Received from client: {data}", fg = "blue")
             #for demo, reply back
             if data.get("action") == "event":
                 await ws.send(json.dumps({"action":"ack","detail":"received event"}))

@@ -6,7 +6,7 @@ import click
 HOST = "0.0.0.0"
 Port = 8765
 
-async def handler(ws, path):
+async def handler(ws):
     click.secho(f"Laptop Connected", fg = "blue")
 
     #for testing we are sending a create-button command

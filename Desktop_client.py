@@ -11,7 +11,7 @@ PI_WS = "ws://192.168.137.5:8765"
 widgets = {}
 
 async def ws_handler():
-    async with websockets.concept(PI_WS) as ws:
+    async with websockets.connect(PI_WS) as ws:
         click.secho("Connected to Pi server", fg = "blue")
         #receive messages
         async for msg in ws:
@@ -37,7 +37,7 @@ def create_widget(ws, data):
     text = props.get("text", "")
 
     if wtype == "button":
-        btn = ttk.Button(root, text= text }
+        btn = ttk.Button(root, text= text)
         btn.place(x = x, y = y)
         def on_click(_wid = wid):
             payload = {"action": "event", "id" : _wid, "event":{"type":"click"}}
@@ -53,7 +53,7 @@ def start_ws_loop():
 
 if __name__ == "__main__":
     root = tk.Tk()
-    root.geometry("400X300")
+    root.geometry("400x300")
     root.title("Pi remote UI (client)")
 
     #start websocket client thread

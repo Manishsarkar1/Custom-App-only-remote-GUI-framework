@@ -115,4 +115,23 @@ class RemoteWidget:
         }))
 
 class RemoteLabel(RemoteWidget):
-    
+    def __init__(self, text: str, x = 10, y = 10):
+        super().__init__("label", {"text": text, "x": x, "y": y})
+
+class RemoteButton(RemoteWidget):
+    def __init(self, text:str, x = 10, y = 10, callback = None):
+        super().__init__("button", {"text" : text, "x": x, "y": y}, callback = callback)
+
+
+#small demo for the thing
+
+async def _demo():
+    await asyncio.sleep(0.5)
+
+    def on_click(ev):
+        print("Pi: Button clicked event: ", ev)
+        label.update({"text":"Clicked!"})
+
+    label = RemoteLabel("Hello from Pi", x = 20, y = 20)
+    btn = RemoteButton("Press me", x = 10, y = 60, callback = on_click)
+    entry = 

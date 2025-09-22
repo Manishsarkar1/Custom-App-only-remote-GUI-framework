@@ -33,7 +33,7 @@ async def _broadcast(obj:Dict[str, Any]):
     await asyncio.wait([ws.send(msg) for ws in list(_clients)])
 
 def _mkid() -> str:
-    return vvid.vvid4().hex[:8]
+    return uuid.uuid4().hex[:8]
 
 async def _handle_incoming(ws, data: Dict[str, Any]):
     act = data.get("action")

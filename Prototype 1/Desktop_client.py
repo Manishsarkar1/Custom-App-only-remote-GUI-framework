@@ -10,7 +10,7 @@ PI_WS = "ws://192.168.137.4:8765" #this is pi's ip address
 AUTH_TOKEN = None
 
 root = tk.Tk()
-root.geometry("640X420")
+root.geometry("640x420")
 root.title("Pi Remote UI")
 
 widgets = {} #wid = tk widget
@@ -72,7 +72,7 @@ def create_widget(data):
         widgets[wid] = w
 
 def update_widget(wid, props):
-    w = widgets.get{wid}
+    w = widgets.get(wid)
     if not w: return
     if "text" in props:
         try:

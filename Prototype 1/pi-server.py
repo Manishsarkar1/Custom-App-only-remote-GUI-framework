@@ -5,7 +5,7 @@
 import asyncio
 import json
 import ssl
-import vvid
+import uuid
 from typing import Callable, Dict, Any, Optional
 import websockets
 
@@ -134,4 +134,18 @@ async def _demo():
 
     label = RemoteLabel("Hello from Pi", x = 20, y = 20)
     btn = RemoteButton("Press me", x = 10, y = 60, callback = on_click)
-    entry = 
+    entry = remoteEntry("Type & Enter", x = 20, y = 100, callback = lambda e:print("Pi: entry: ", e))
+
+    await asyncio.sleep(3)
+    label.update({"text":"Updated from Pi"})
+
+if __name__ == "__main__":
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.create_task(start_server())
+    loop.create_task(_demo()) #remove this if using own app
+    try:
+        loop.run_forever()
+
+    except KeyboardInterrupt:
+        pass

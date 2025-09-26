@@ -75,7 +75,7 @@ async def handler(ws, *_) -> None:
     try:
         async for msg in ws:
             try:
-                data = json.leads(msg)
+                data = json.loads(msg)
             except json.JSONDecodeError:
                 continue
             await _handle_incoming(ws, data)
@@ -119,9 +119,12 @@ class RemoteLabel(RemoteWidget):
         super().__init__("label", {"text": text, "x": x, "y": y})
 
 class RemoteButton(RemoteWidget):
-    def __init(self, text:str, x = 10, y = 10, callback = None):
+    def __init__(self, text:str, x = 10, y = 10, callback = None):
         super().__init__("button", {"text" : text, "x": x, "y": y}, callback = callback)
 
+class RemoteEntry(RemoteWidget):
+    def __init__(self, placeholder: str, x=10, y = 10, callback = None):
+        super().__init__("entry", {"placeholder": placeholder, "x": x, "y": y}, callback = callback)
 
 #small demo for the thing
 
@@ -134,7 +137,7 @@ async def _demo():
 
     label = RemoteLabel("Hello from Pi", x = 20, y = 20)
     btn = RemoteButton("Press me", x = 10, y = 60, callback = on_click)
-    entry = remoteEntry("Type & Enter", x = 20, y = 100, callback = lambda e:print("Pi: entry: ", e))
+    entry = RemoteEntry("Type & Enter", x = 20, y = 100, callback = lambda e:print("Pi: entry: ", e))
 
     await asyncio.sleep(3)
     label.update({"text":"Updated from Pi"})

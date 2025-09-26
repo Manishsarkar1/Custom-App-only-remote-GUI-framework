@@ -57,7 +57,7 @@ async def _handle_incoming(ws, data: Dict[str, Any]):
         info = _widget_registry.get(wid)
         cb = info.get("callback") if info else None
         if cb:
-            loop = asyncio.get_runnning_loop()
+            loop = asyncio.get_running_loop()
             def run_cb():
                 try:
                     cb(ev)

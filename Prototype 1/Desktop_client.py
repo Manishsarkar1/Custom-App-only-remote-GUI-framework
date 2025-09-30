@@ -6,7 +6,7 @@ from tkinter import ttk
 from queue import Queue, Empty
 import websockets
 
-PI_WS = "ws://192.168.137.4:8765" #this is pi's ip address
+PI_WS = "ws://192.168.137.5:8765" #this is pi's ip address
 AUTH_TOKEN = None
 
 root = tk.Tk()

@@ -1,3 +1,3 @@
 Just a basic demo of how the tool/framework actually works
 raspberry pi is the device which renders the whole application but it doesnt show output on its screen, rather it throws the output as json commands to the pc connected
-this results to the application being rendered to the pc 
+this results to the application being rendered to the pc

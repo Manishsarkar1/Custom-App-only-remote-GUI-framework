@@ -8,6 +8,7 @@ import ssl
 import uuid
 from typing import Callable, Dict, Any, Optional
 import websockets
+import click
 
 Host = "0.0.0.0"
 Port = 8765
@@ -70,7 +71,7 @@ async def _handle_incoming(ws, data: Dict[str, Any]):
             print("Unhandled from client:", data)
 
 async def handler(ws, *_) -> None:
-    print("Laptop Connected!")
+    click.secho(f"Laptop Connected!", fg = "blue")
     _clients.add(ws)
     try:
         async for msg in ws:
@@ -83,7 +84,7 @@ async def handler(ws, *_) -> None:
         pass
     finally:
         _clients.discard(ws)
-        print("Laptop disconnected!")
+        click.secho(f"Laptop disconnected!", fg = "red")
 
 async def start_server():
     print(f"Starting Pi server on ws://{Host}:{Port}")
@@ -137,7 +138,7 @@ async def _demo():
 
     label = RemoteLabel("Hello from Pi", x = 20, y = 20)
     btn = RemoteButton("Press me", x = 10, y = 60, callback = on_click)
-    entry = RemoteEntry("Type & Enter", x = 20, y = 100, callback = lambda e:print("Pi: entry: ", e))
+    entry = RemoteEntry("Type & Enter", x = 20, y = 100, callback = lambda e:click.secho(f"RaspberryPi said:- {e}", fg = "blue"))
 
     await asyncio.sleep(3)
     label.update({"text":"Updated from Pi"})

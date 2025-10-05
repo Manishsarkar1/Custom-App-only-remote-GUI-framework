@@ -55,14 +55,24 @@ async def _handle_incoming(ws, data: Dict[str, Any]):
         wid = data.get("id")
         ev = data.get("event")
         info = _widget_registry.get(wid)
+        # cb = info.get("callback") if info else None
+        # if cb:
+        #     loop = asyncio.get_running_loop()
+        #     def run_cb():
+        #         try:
+        #             cb(ev)
+        #         except Exception as e:
+        #             print("Callback error:", e)
+        #     loop.run_in_executor(None, run_cb)
+
         cb = info.get("callback") if info else None
-        if cb:
+        if cb: 
             loop = asyncio.get_running_loop()
             def run_cb():
                 try:
                     cb(ev)
                 except Exception as e:
-                    print("Callback error:", e)
+                    print("Callback error: ", e)
             loop.run_in_executor(None, run_cb)
         elif act == "heatbeat":
             await ws.send(_msg({"action":"heartbeat_ack"}))

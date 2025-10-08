@@ -83,7 +83,7 @@ async def handler(ws, *_):
 
 async def start_server():
     click.secho(f"Starting Pi server on ws://{Host}:{Port}")
-    async with websockets.server(handler, Host, Port):
+    async with websockets.Server(handler, Host, Port):
         await asyncio.Future()
 
 #Remote Widgets
@@ -102,9 +102,9 @@ class RemoteWidget:
         self.props.update(props)
         _widget_registry[self.id]["props"] = self.props
         asyncio.get_event_loop().create_task(_broadcast({
-            "actions":"update", "id": self.id, "props":props
+            "action":"update", "id": self.id, "props":props
         }))
-    
+
     def destroy(self):
         _widget_registry.pop(self.id, None)
         asyncio.get_event_loop().create_task(_broadcast({
@@ -148,7 +148,7 @@ async def _demo():
         click.secho(f"Pi: Slider Event: {ev}", fg = "blue")
 
     def on_entry(ev):
-        print(f"Pi: Entry event: {ev}", fg = "blue")
+        click.secho(f"Pi: Entry event: {ev}", fg = "blue")
     
     label = RemoteLabel("Hello from Pi", x = 20, y = 20)
     btn = RemoteButton("Press me", x = 10, y = 60, callback = on_click)

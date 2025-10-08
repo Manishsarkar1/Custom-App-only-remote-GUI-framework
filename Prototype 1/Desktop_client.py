@@ -75,10 +75,20 @@ def create_widget(data):
         w = ttk.Scale(root, from_=props.get("min", 0), to=props.get("max", 100), orient = "horizontal")
         w.set(props.get("value", 0))
         w.place(x = x, y = y)
-
         def on_slide(val, _wid= wid):
             outbox.put({"action": "event", "id": _wid, "event": {"type": "slide", "value": float(val)}})
         w.config(command = on_slide)
+        widgets[wid] = w
+
+    elif wtype == "checkbox":
+    # A BooleanVar is a special Tkinter variable to hold the state of a checkbox
+        var = tk.BooleanVar(value=props.get("checked", False))
+        w = ttk.Checkbutton(root, text=props.get("label", ""), variable=var)
+        w.place(x=x, y=y)
+        def on_check(_wid=wid, _var=var):
+            outbox.put({"action": "event", "id": _wid, "event": {"type": "check", "checked": _var.get()}})
+
+        w.config(command=on_check)
         widgets[wid] = w
 
 def update_widget(wid, props):

@@ -83,7 +83,7 @@ async def handler(ws, *_):
 
 async def start_server():
     click.secho(f"Starting Pi server on ws://{Host}:{Port}")
-    async with websockets.Server(handler, Host, Port):
+    async with websockets.serve(handler, Host, Port):
         await asyncio.Future()
 
 #Remote Widgets

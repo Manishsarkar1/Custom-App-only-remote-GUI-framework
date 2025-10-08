@@ -20,7 +20,7 @@ async def _broadcast(obj: Dict[str, Any]):
     if not _clients:
         return
     msg = _msg(obj)
-    await asyncio.wait([ws.send(msg) for ws in list(_clients)])
+    await asyncio.gather(*[ws.send(msg) for ws in list(_clients)])
 
 def _mkid() -> str:
     return uuid.uuid4().hex[:8]

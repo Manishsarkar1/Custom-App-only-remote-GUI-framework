@@ -1,6 +1,6 @@
 import asyncio
 import json
-import vvid
+# import vvid
 from typing import Callable, Dict, Any, Optional
 import websockets
 import click

@@ -111,4 +111,61 @@ class RemoteWidget:
             "action": "destroy", "id": self.id
         }))
 
+
+class RemoteLabel(RemoteWidget):
+    def __init__(self, text: str, x=10, y=10):
+        super().__init__("label", {"text": text, "x": x, "y": y})
+
+class RemoteButton(RemoteWidget):
+    def __init__(self, text: str, x=10, y=10, callback=None):
+        super().__init__("button", {"text": text, "x": x, "y": y}, callback=callback)
+
+class RemoteEntry(RemoteWidget):
+    def __init__(self, placeholder="Type here...", x=10, y=10, callback=None):
+        super().__init__("entry", {"placeholder": placeholder, "x": x, "y": y}, callback=callback)
+
+class RemoteCheckbox(RemoteWidget):
+    def __init__(self, label: str, checked=False, x=10, y=10, callback=None):
+        super().__init__("checkbox", {"label": label, "checked": checked, "x": x, "y": y}, callback=callback)
+
+class RemoteSlider(RemoteWidget):
+    def __init__(self, min_value=0, max_value=100, value=50, x=10, y=10, callback=None):
+        super().__init__("slider", {"min": min_value, "max": max_value, "value": value, "x": x, "y": y}, callback=callback)
+
+
+#now small demo
+async def _demo():
+    await asyncio.sleep(0.5)
+
+    def on_click(ev):
+        click.secho(f"Pi: Button clicked event: {ev}", fg = "blue")
+        label.update({"text": "Clicked!"})
+
+    def on_checkbox(ev):
+        click.secho(f"Pi: CheckBox event: {ev}", fg = "blue")
+
+    def on_slider(ev):
+        click.secho(f"Pi: Slider Event: {ev}", fg = "blue")
+
+    def on_entry(ev):
+        print(f"Pi: Entry event: {ev}", fg = "blue")
     
+    label = RemoteLabel("Hello from Pi", x = 20, y = 20)
+    btn = RemoteButton("Press me", x = 10, y = 60, callback = on_click)
+    chk = RemoteCheckbox("Enable Feature", x = 10, y = 100, callback = on_checkbox)
+    sld = RemoteSlider(0, 100, 30, x = 10, y = 140, callback = on_slider)
+    ent = RemoteEntry("Type and Enter", x= 10, y = 100, callback = on_entry)
+
+    await asyncio.sleep(3)
+    label.update({"text": "Updated from Pi"})
+
+#Entry Point
+if __name__ == "__main__":
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.create_task(start_server())
+    loop.create_task(_demo()) #have to remove this when using own app logic
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass

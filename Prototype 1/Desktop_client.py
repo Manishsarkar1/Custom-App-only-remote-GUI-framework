@@ -71,6 +71,16 @@ def create_widget(data):
         w.bind("<Return>", on_return)
         widgets[wid] = w
 
+    elif wtype == "slider":
+        w = ttk.Scale(root, from_=props.get("min", 0), to=props.get("max", 100), orient = "horizontal")
+        w.set(props.get("value", 0))
+        w.place(x = x, y = y)
+
+        def on_slide(val, _wid= wid):
+            outbox.put({"action": "event", "id": _wid, "event": {"type": "slide", "value": float(val)}})
+        w.config(command = on_slide)
+        widgets[wid] = w
+
 def update_widget(wid, props):
     w = widgets.get(wid)
     if not w: return

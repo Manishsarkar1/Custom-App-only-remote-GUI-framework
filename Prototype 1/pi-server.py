@@ -8,6 +8,7 @@ import ssl
 import uuid
 from typing import Callable, Dict, Any, Optional
 import websockets
+import click
 
 Host = "0.0.0.0"
 Port = 8765
@@ -55,24 +56,14 @@ async def _handle_incoming(ws, data: Dict[str, Any]):
         wid = data.get("id")
         ev = data.get("event")
         info = _widget_registry.get(wid)
-        # cb = info.get("callback") if info else None
-        # if cb:
-        #     loop = asyncio.get_running_loop()
-        #     def run_cb():
-        #         try:
-        #             cb(ev)
-        #         except Exception as e:
-        #             print("Callback error:", e)
-        #     loop.run_in_executor(None, run_cb)
-
         cb = info.get("callback") if info else None
-        if cb: 
+        if cb:
             loop = asyncio.get_running_loop()
             def run_cb():
                 try:
                     cb(ev)
                 except Exception as e:
-                    print("Callback error: ", e)
+                    print("Callback error:", e)
             loop.run_in_executor(None, run_cb)
         elif act == "heatbeat":
             await ws.send(_msg({"action":"heartbeat_ack"}))
@@ -80,7 +71,7 @@ async def _handle_incoming(ws, data: Dict[str, Any]):
             print("Unhandled from client:", data)
 
 async def handler(ws, *_) -> None:
-    print("Laptop Connected!")
+    click.secho(f"Laptop Connected!", fg = "blue")
     _clients.add(ws)
     try:
         async for msg in ws:
@@ -93,7 +84,7 @@ async def handler(ws, *_) -> None:
         pass
     finally:
         _clients.discard(ws)
-        print("Laptop disconnected!")
+        click.secho(f"Laptop disconnected!", fg = "red")
 
 async def start_server():
     print(f"Starting Pi server on ws://{Host}:{Port}")
@@ -147,8 +138,8 @@ async def _demo():
 
     label = RemoteLabel("Hello from Pi", x = 20, y = 20)
     btn = RemoteButton("Press me", x = 10, y = 60, callback = on_click)
-    entry = RemoteEntry("Type & Enter", x = 20, y = 100, callback = lambda e:print("Pi: entry: ", e))
-
+    entry = RemoteEntry("Type & Enter", x = 20, y = 100, callback = lambda e:click.secho(f"RaspberryPi said:- {e}", fg = "blue"))
+    
     await asyncio.sleep(3)
     label.update({"text":"Updated from Pi"})
 

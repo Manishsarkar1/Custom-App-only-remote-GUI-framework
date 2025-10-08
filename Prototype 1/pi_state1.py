@@ -1,6 +1,6 @@
 import asyncio
 import json
-# import vvid
+import uuid
 from typing import Callable, Dict, Any, Optional
 import websockets
 import click
@@ -23,7 +23,7 @@ async def _broadcast(obj: Dict[str, Any]):
     await asyncio.wait([ws.send(msg) for ws in list(_clients)])
 
 def _mkid() -> str:
-    return vvid.vvid4().hex[:8]
+    return uuid.uuid4().hex[:8]
 
 async def _safe_cb(ev, cb):
     try:

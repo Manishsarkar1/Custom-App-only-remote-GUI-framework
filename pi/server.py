@@ -1,7 +1,7 @@
-﻿import asyncio
-import json
+import asyncio
+import logging
 import uuid
-from typing import Callable, Dict, Any, Optional
+from typing import Any, Callable, Dict, Optional
 
 import websockets
 
@@ -11,6 +11,7 @@ import sys
 # Allow running this script from its folder or repo root.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from shared.config import AUTH_TOKEN, SERVER_HOST, SERVER_PORT
 from shared.protocol import (
     ACTION_CREATE,
     ACTION_DESTROY,
@@ -22,57 +23,56 @@ from shared.protocol import (
     ACTION_HELLO_ACK,
     ACTION_UPDATE,
     PROTOCOL_VERSION,
+    ProtocolError,
     dumps,
+    loads,
+    validate_message,
 )
 
-HOST = "0.0.0.0"
-PORT = 8765
-AUTH_TOKEN = None  # optional auth token (set to None to disable)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger("remote_gui.server")
 
 _clients = set()
 _widget_registry: Dict[str, Dict[str, Any]] = {}
+
 
 
 def _mkid() -> str:
     return uuid.uuid4().hex[:8]
 
 
+
+def _error(reason: str) -> Dict[str, Any]:
+    return {"action": ACTION_ERROR, "reason": reason}
+
+
 async def _broadcast(obj: Dict[str, Any]):
     if not _clients:
         return
 
-    msg = dumps(obj)
+    msg = dumps(validate_message(obj))
     clients = list(_clients)
     results = await asyncio.gather(*(ws.send(msg) for ws in clients), return_exceptions=True)
 
-    # Drop clients that errored (usually disconnected).
     for ws, res in zip(clients, results):
         if isinstance(res, Exception):
+            logger.warning("Dropping client after send failure: %s", res)
             _clients.discard(ws)
+
 
 
 def _safe_cb(ev: Dict[str, Any], cb: Callable[[Dict[str, Any]], None]):
     try:
         cb(ev)
-    except Exception as e:
-        print("Callback error:", e)
+    except Exception:
+        logger.exception("Callback error")
 
 
-async def _handle_incoming(ws, data: Dict[str, Any]):
-    act = data.get("action")
-
-    if act == ACTION_HELLO:
-        if AUTH_TOKEN and data.get("token") != AUTH_TOKEN:
-            await ws.send(dumps({"action": ACTION_ERROR, "reason": "auth_failed"}))
-            await ws.close(code=4401, reason="Auth Failed")
-            return
-
-        await ws.send(dumps({"action": ACTION_HELLO_ACK, "protocol": PROTOCOL_VERSION}))
-
-        # Replay current UI state so the client can rebuild if reconnected.
-        for wid, meta in _widget_registry.items():
-            await ws.send(
-                dumps(
+async def _replay_ui_state(ws) -> None:
+    for wid, meta in _widget_registry.items():
+        await ws.send(
+            dumps(
+                validate_message(
                     {
                         "action": ACTION_CREATE,
                         "widget": meta["type"],
@@ -81,6 +81,31 @@ async def _handle_incoming(ws, data: Dict[str, Any]):
                     }
                 )
             )
+        )
+
+
+async def _handle_incoming(ws, data: Dict[str, Any]):
+    act = data.get("action")
+
+    if act == ACTION_HELLO:
+        if data.get("protocol") != PROTOCOL_VERSION:
+            await ws.send(dumps(_error("protocol_mismatch")))
+            await ws.close(code=4400, reason="Protocol Mismatch")
+            return
+
+        if AUTH_TOKEN and data.get("token") != AUTH_TOKEN:
+            await ws.send(dumps(_error("auth_failed")))
+            await ws.close(code=4401, reason="Auth Failed")
+            return
+
+        await ws.send(
+            dumps(
+                validate_message(
+                    {"action": ACTION_HELLO_ACK, "protocol": PROTOCOL_VERSION}
+                )
+            )
+        )
+        await _replay_ui_state(ws)
 
     elif act == ACTION_EVENT:
         wid = data.get("id")
@@ -88,38 +113,38 @@ async def _handle_incoming(ws, data: Dict[str, Any]):
         info = _widget_registry.get(wid)
         cb = info.get("callback") if info else None
         if cb and isinstance(ev, dict):
-            # Callbacks are kept synchronous for simplicity.
             _safe_cb(ev, cb)
 
     elif act == ACTION_HEARTBEAT:
-        await ws.send(dumps({"action": ACTION_HEARTBEAT_ACK}))
+        await ws.send(dumps(validate_message({"action": ACTION_HEARTBEAT_ACK})))
 
     else:
-        print("Unhandled from client:", data)
+        logger.warning("Unhandled client message: %s", data)
 
 
 async def handler(ws, *_):
-    print("Desktop connected")
+    logger.info("Desktop connected")
     _clients.add(ws)
     try:
-        async for msg in ws:
+        async for raw in ws:
             try:
-                data = json.loads(msg)
-            except Exception:
+                data = validate_message(loads(raw))
+            except ProtocolError as exc:
+                logger.warning("Rejected client message: %s", exc)
+                await ws.send(dumps(_error(str(exc))))
                 continue
-            if isinstance(data, dict):
-                await _handle_incoming(ws, data)
+
+            await _handle_incoming(ws, data)
     except websockets.ConnectionClosed:
-        pass
+        logger.info("Desktop disconnected")
     finally:
         _clients.discard(ws)
-        print("Desktop disconnected")
 
 
 async def start_server():
-    print(f"Starting Pi server on ws://{HOST}:{PORT}")
-    async with websockets.serve(handler, HOST, PORT):
-        await asyncio.Future()  # run forever
+    logger.info("Starting Pi server on ws://%s:%s", SERVER_HOST, SERVER_PORT)
+    async with websockets.serve(handler, SERVER_HOST, SERVER_PORT, ping_interval=20, ping_timeout=20):
+        await asyncio.Future()
 
 
 class RemoteWidget:
@@ -137,7 +162,14 @@ class RemoteWidget:
 
         loop = asyncio.get_running_loop()
         loop.create_task(
-            _broadcast({"action": ACTION_CREATE, "widget": self.type, "id": self.id, "props": self.props})
+            _broadcast(
+                {
+                    "action": ACTION_CREATE,
+                    "widget": self.type,
+                    "id": self.id,
+                    "props": self.props,
+                }
+            )
         )
 
     def update(self, props: Dict[str, Any]):
@@ -191,17 +223,17 @@ async def _demo():
     await asyncio.sleep(0.5)
 
     def on_click(ev):
-        print("Pi: Button clicked event:", ev)
+        logger.info("Pi: Button clicked event: %s", ev)
         label.update({"text": "Clicked!"})
 
     def on_checkbox(ev):
-        print("Pi: CheckBox event:", ev)
+        logger.info("Pi: CheckBox event: %s", ev)
 
     def on_slider(ev):
-        print("Pi: Slider event:", ev)
+        logger.info("Pi: Slider event: %s", ev)
 
     def on_entry(ev):
-        print("Pi: Entry event:", ev)
+        logger.info("Pi: Entry event: %s", ev)
 
     label = RemoteLabel("Hello from Pi", x=20, y=20)
     RemoteButton("Press me", x=10, y=60, callback=on_click)
@@ -214,8 +246,6 @@ async def _demo():
 
 
 if __name__ == "__main__":
-    import json
-
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
@@ -225,5 +255,4 @@ if __name__ == "__main__":
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        pass
-
+        logger.info("Server stopped")

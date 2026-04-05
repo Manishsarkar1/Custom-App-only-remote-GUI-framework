@@ -1,46 +1,39 @@
 # Remote GUI Framework (Prototype)
 
-A lightweight prototype for rendering an application UI on a desktop while the application logic runs on an IoT or edge device (example: Raspberry Pi). Instead of forwarding a full desktop (X11/VNC), the device streams a small JSON UI protocol over WebSockets.
+A lightweight prototype for rendering an application UI on a desktop while the application logic runs on an IoT or edge device. Instead of forwarding a full desktop, the device streams a compact JSON UI protocol over WebSockets.
 
-## What It Does
+## What Changed
 
-- The device (Pi) owns the app state and decides what UI should exist.
-- The device sends UI commands to the desktop: create, update, destroy.
-- The desktop renders widgets locally (Tkinter) and sends user input back as events.
-- The desktop now auto-reconnects and shows connection state in the window.
-
-This is intentionally minimal and is meant as a starting point for a real protocol/layout system.
+- The desktop client now has light/dark theme support.
+- The UI can render richer layouts with cards and scrollable columns.
+- The demo now looks more like a dashboard instead of a raw widget test.
+- Tooltips, stronger typography, better button variants, and more widget types are supported.
 
 ## Repo Layout
 
 ```
 pi/
-  server.py            # WebSocket server + Remote* widgets (Pi side)
+  server.py            # WebSocket server + remote widget helpers + demo UI
 desktop/
-  client_tk.py         # Tkinter renderer (desktop side)
+  client_tk.py         # Tkinter renderer, theming, reconnect logic
 shared/
-  config.py            # Shared environment-based config
-  protocol.py          # Shared protocol constants/helpers/validation
+  config.py            # Environment-based config
+  protocol.py          # Protocol constants + validation
 tests/
   test_protocol.py     # Basic protocol validation coverage
-docs/
-  prototype_notes.txt  # Background notes
-README.md
-ReadThis.txt
 ```
 
 ## Quick Start
 
 ### 1) Configure the connection
 
-Use environment variables instead of editing source files directly.
-
-Windows PowerShell example:
+PowerShell example:
 
 ```powershell
 $env:REMOTE_GUI_HOST = "0.0.0.0"
 $env:REMOTE_GUI_PORT = "8765"
 $env:REMOTE_GUI_PI_WS = "ws://192.168.137.5:8765"
+$env:REMOTE_GUI_THEME = "dark"
 # Optional:
 # $env:REMOTE_GUI_AUTH_TOKEN = "secret-token"
 # $env:REMOTE_GUI_HEARTBEAT_MS = "5000"
@@ -49,50 +42,54 @@ $env:REMOTE_GUI_PI_WS = "ws://192.168.137.5:8765"
 
 ### 2) Start the Pi server
 
-On the Pi (or any machine acting as the device):
-
 ```bash
 python pi/server.py
 ```
 
 ### 3) Start the desktop client
 
-On the desktop:
-
 ```bash
 python desktop/client_tk.py
 ```
 
-A demo UI should appear on the desktop. If the connection drops, the desktop app will retry automatically.
+## Supported Widgets
 
-## Protocol Summary
+- `label`
+- `button`
+- `entry`
+- `slider`
+- `checkbox`
+- `dropdown`
+- `progress`
+- `textarea`
+- `row`
+- `column`
+- `card`
+- `scroll_column`
+- `separator`
+- `spinner`
+- `radio_group`
 
-All messages are JSON objects.
+## Useful Props
 
-### Device -> Desktop
+- `x`, `y` for absolute placement
+- `parent` for nested layouts
+- `layout` for `padx`, `pady`, `fill`, `expand`, `side`, `anchor`
+- `width`, `height`
+- `visible`, `disabled`
+- `variant` for button/progress styling
+- `font_role` like `hero`, `title`, `section`, `subtitle`, `metric`, `caption`
+- `tooltip`
+- `wrap` for labels
 
-- `{"action":"create","widget":"label|button|entry|slider|checkbox","id":"<id>","props":{...}}`
-- `{"action":"update","id":"<id>","props":{...}}`
-- `{"action":"destroy","id":"<id>"}`
+## UX Improvements
 
-### Desktop -> Device
-
-- `{"action":"event","id":"<id>","event":{...}}`
-
-### Handshake And Keepalive
-
-- desktop sends: `{"action":"hello","protocol":1}`
-- device replies: `{"action":"hello_ack","protocol":1}`
-- desktop sends: `{"action":"heartbeat"}`
-- device replies: `{"action":"heartbeat_ack"}`
-
-Invalid messages are now rejected with an error payload.
-
-## Dependencies
-
-- Python 3
-- `websockets` (Python package)
-- Tkinter (usually bundled with Python on Windows/macOS; may need separate install on some Linux distros)
+- Auto reconnect with visible connection state
+- Throttled slider events
+- Scrollable content regions
+- Card-style dashboard sections
+- Radio groups and indeterminate spinner support
+- Text areas with `Ctrl+Enter` submit
 
 ## Tests
 
@@ -100,10 +97,8 @@ Invalid messages are now rejected with an error payload.
 python -m unittest discover -s tests
 ```
 
-## Next Steps
+## Current Limits
 
-Natural follow-ups from here:
-- Add layout primitives (rows/columns/stack, sizing) instead of raw `x/y` placement.
-- Add more widgets and styling/state props.
-- Add batching/diffing for larger UIs.
-- Add stronger auth/TLS options for non-local setups.
+- Layout is still a simple pack/place hybrid, not a full flexbox/grid engine.
+- Styling is desktop-side only; the protocol sends style hints rather than a full design system schema.
+- Advanced features from the larger wishlist like charts, tabs, modals, drag-and-drop, TLS, and plugin architecture are still not implemented.

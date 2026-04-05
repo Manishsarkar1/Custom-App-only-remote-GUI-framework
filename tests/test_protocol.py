@@ -1,6 +1,7 @@
 import unittest
 
 from shared.protocol import (
+    ACTION_BATCH,
     ACTION_CREATE,
     ACTION_ERROR,
     ACTION_HELLO,
@@ -20,10 +21,31 @@ class ProtocolTests(unittest.TestCase):
         message = {
             "action": ACTION_CREATE,
             "id": "abc123",
-            "widget": "label",
-            "props": {"text": "Hello"},
+            "widget": "card",
+            "props": {"title": "Hello"},
         }
         self.assertEqual(validate_message(message), message)
+
+    def test_validate_batch_accepts_multiple_valid_messages(self):
+        message = {
+            "action": ACTION_BATCH,
+            "messages": [
+                {"action": ACTION_HELLO, "protocol": PROTOCOL_VERSION},
+                {"action": ACTION_CREATE, "id": "abc123", "widget": "row", "props": {}},
+            ],
+        }
+        self.assertEqual(validate_message(message), message)
+
+    def test_validate_batch_rejects_bad_nested_message(self):
+        with self.assertRaises(ProtocolError):
+            validate_message(
+                {
+                    "action": ACTION_BATCH,
+                    "messages": [
+                        {"action": ACTION_CREATE, "id": "abc123", "widget": "canvas", "props": {}},
+                    ],
+                }
+            )
 
     def test_validate_hello_requires_protocol(self):
         with self.assertRaises(ProtocolError):
